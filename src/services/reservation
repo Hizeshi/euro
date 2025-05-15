@@ -1,0 +1,13 @@
+
+
+type ReservationBody = {
+    reservation_token: string|null;
+    reservation: { row: number; seat: number }[];
+    duration: number | null;
+
+}
+
+
+export const reservation = async (concertId: number, showId: number, body: ReservationBody) => {
+
+}
