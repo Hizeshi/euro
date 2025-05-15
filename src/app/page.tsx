@@ -1,3 +1,5 @@
+// src/app/page.tsx
+
 "use client";
 import { Title } from "./components/shared/title";
 import { Filters } from "./components/shared/filters";

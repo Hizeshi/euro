@@ -1,3 +1,5 @@
+// src/services/shows.ts
+
 import { ApiInstance } from "@/services/api-instance";
 import { Show } from "@/@types/show";
 

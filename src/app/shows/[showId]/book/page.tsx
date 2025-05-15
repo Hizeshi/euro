@@ -1,3 +1,5 @@
+// src/app/shows/[showId]/book/page.tsx
+
 "use client";
 import { PlaceShow } from "./components/placeshow";
 import { SelectedPlaces } from "./components/selectedplaces";

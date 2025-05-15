@@ -1,3 +1,5 @@
+// src/app/shows/[showId]/book/components/booking.tsx
+
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 

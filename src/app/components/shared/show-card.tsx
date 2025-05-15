@@ -1,3 +1,5 @@
+// src/app/components/shared/show-card.tsx
+
 import React from "react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";

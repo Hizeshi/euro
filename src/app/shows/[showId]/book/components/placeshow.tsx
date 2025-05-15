@@ -1,3 +1,5 @@
+// src/app/shows/[showId]/book/components/placeshow.tsx
+
 import { cn } from "@/lib/utils";
 import { useReservationStore } from "@/stores/reservation";
 import { useRowsStore } from "@/stores/rows";

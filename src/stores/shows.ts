@@ -1,3 +1,5 @@
+// src/stores/shows.ts
+
 import { Show } from "@/@types/show";
 import { Api } from "@/services/api";
 import { create } from "zustand";

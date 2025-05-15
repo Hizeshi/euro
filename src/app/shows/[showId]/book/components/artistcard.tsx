@@ -1,3 +1,5 @@
+// src/app/shows/[showId]/book/components/artistcard.tsx
+
 import {
   Card,
   CardContent,

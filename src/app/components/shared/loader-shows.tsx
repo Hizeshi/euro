@@ -1,3 +1,5 @@
+// src/app/components/shared/loader-shows.tsx
+
 "use client";
 import { UseShowsStore } from "@/stores/shows";
 import { useEffect } from "react";

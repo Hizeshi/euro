@@ -1,3 +1,5 @@
+// src/app/tickets/page.tsx
+
 import { Container } from "@/app/components/shared/container";
 import { YourDetailsCard } from "./components/YourDetailsCard";
 import { TicketDisplayCard } from "./components/TicketDisplayCard";

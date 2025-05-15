@@ -1,3 +1,5 @@
+// src/app/components/shared/show-list.tsx
+
 "use client";
 import React from "react";
 import { ShowCard } from "./show-card";

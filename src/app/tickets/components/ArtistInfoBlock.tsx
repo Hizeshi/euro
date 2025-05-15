@@ -1,3 +1,5 @@
+// src/app/tickets/components/ArtistInfoBlock.tsx
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 

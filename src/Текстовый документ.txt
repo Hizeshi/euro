@@ -1,0 +1,2093 @@
+// src/@types/row.ts
+
+export type Row = {
+  id: number;
+  name: string;
+  seats: {
+    total: number;
+    unavailable: number[];
+  };
+};
+
+// src/@types/show.ts
+
+export type Show = {
+  id: number;
+  artist: string;
+  location: string;
+  date: string;
+  start: string;
+  end: string;
+  concertId: number;
+};
+
+
+// src/app/components/shared/container.tsx
+
+import { cn } from "@/lib/utils";
+import React from "react";
+
+interface Props {
+  className?: string;
+  children: React.ReactNode;
+}
+
+export const Container: React.FC<Props> = ({ children, className }) => {
+  return <div className={cn("max-w-5xl m-auto", className)}>{children}</div>;
+};
+
+// src/app/components/shared/filters.tsx
+
+import React, { useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { UseShowsStore } from "@/stores/shows";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+interface Props {
+  className?: string;
+}
+
+const filterTriggerWidth = "w-[180px]";
+
+export const Filters: React.FC<Props> = ({ className }) => {
+  const { artists, locations, filterShows } = UseShowsStore();
+  const [artist, setArtist] = useState("");
+  const [location, setLocation] = useState("");
+  const [date, setDate] = useState("");
+
+  const onChangeArtist = (value: string) => {
+    setArtist(value);
+    filterShows(value, location, date);
+  };
+
+  const onChangeLocation = (value: string) => {
+    setLocation(value);
+    filterShows(artist, value, date);
+  };
+
+  const onChangeDate = (value: string) => {
+    setDate(value);
+    filterShows(artist, location, value);
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between mt-4">
+        <Select onValueChange={onChangeArtist}>
+          <SelectTrigger className="w-full me-4 cursor-pointer">
+            <SelectValue placeholder="Artist" />
+          </SelectTrigger>
+          <SelectContent>
+            {artists.map((artist) => (
+              <SelectItem
+                key={artist}
+                value={artist}
+                className="cursor-pointer"
+              >
+                {artist}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select onValueChange={onChangeLocation}>
+          <SelectTrigger className="w-full me-4 cursor-pointer">
+            <SelectValue placeholder="Location" />
+          </SelectTrigger>
+          <SelectContent>
+            {locations.map((location) => (
+              <SelectItem
+                key={location}
+                value={location}
+                className="cursor-pointer"
+              >
+                {location}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Input
+          onChange={(e) => onChangeDate(e.target.value)}
+          type="date"
+          className="cursor-pointer"
+        />
+        {(artist || location || date) && (
+          <Button
+            onClick={() => {
+              setArtist("");
+              setLocation("");
+              setDate("");
+              filterShows("", "", "");
+            }}
+            className="ml-4 cursor-pointer"
+          >
+            Reset
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
+// src/app/components/shared/header.tsx
+
+import { Button } from "@/components/ui/button";
+import { Container } from "./container";
+import Link from "next/link";
+import React from "react";
+
+interface Props {
+  className?: string;
+}
+
+export const Header: React.FC<Props> = ({ className }) => {
+  return (
+    <div className="bg-indigo-300 text-white">
+      <Container className="flex justify-between p-2 items-center">
+        <div>
+          <Link href="/" className="text-2xl font-semibold">
+            EuroSkills Concerts
+          </Link>
+        </div>
+        <div>
+          <span className="me-2">Already booked?</span>
+          <Button asChild>
+            <Link href="/retrieve-tickets">Get Tickets</Link>
+          </Button>
+        </div>
+      </Container>
+    </div>
+  );
+};
+
+// src/app/components/shared/loader-shows.tsx
+
+"use client";
+import { UseShowsStore } from "@/stores/shows";
+import { useEffect } from "react";
+import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
+
+interface Props {
+  children?: React.ReactNode;
+  className?: string;
+}
+
+export const LoaderShows: React.FC<Props> = ({ className, children }) => {
+  const { fetchShows, isLoading } = UseShowsStore();
+  useEffect(() => {
+    fetchShows();
+  }, []);
+  return (
+    <div className="flex justify-center items-center h-screen">
+      {isLoading ? <ClimbingBoxLoader color="#22a4f1" /> : children}
+    </div>
+  );
+};
+
+
+// src/app/components/shared/show-card.tsx
+
+import React from "react";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { Show } from "@/@types/show";
+
+interface Props {
+  className?: string;
+  show: Show;
+}
+
+export const ShowCard: React.FC<Props> = ({ className, show }) => {
+  return (
+    <Card className={cn("text-center", className)}>
+      <CardContent className="text-center">
+        <p> {show.date} </p>
+        <CardTitle className="text-xl my-2"> {show.artist} </CardTitle>
+        <p className="text-sm"> {show.location} </p>
+        <p className="text-sm mt-8">
+          {show.start}-{show.end}
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
+
+
+
+// src/app/components/shared/show-list.tsx
+
+"use client";
+import React from "react";
+import { ShowCard } from "./show-card";
+import { cn } from "@/lib/utils";
+import { UseShowsStore } from "@/stores/shows";
+import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
+
+interface Props {
+  className?: string;
+}
+
+export const ShowList: React.FC<Props> = ({ className }) => {
+  const { shows, isLoading } = UseShowsStore();
+
+  return (
+    <div
+      className={cn(
+        "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-6",
+        className
+      )}
+    >
+      {isLoading
+        ? Array.from({ length: 10 }).map((_, i) => (
+            <Skeleton key={i} className="h-[250px] w-[250px]" />
+          ))
+        : shows.map((show) => (
+            <Link key={show.id} href={`shows/${show.id}/book`}>
+              <ShowCard show={show} />
+            </Link>
+          ))}
+    </div>
+  );
+};
+
+
+// src/app/components/shared/title.tsx
+
+import { cn } from "@/lib/utils";
+import { ReactNode } from "react";
+
+interface Props {
+  className: string;
+  children: ReactNode;
+}
+export const Title: React.FC<Props> = ({ className, children }) => {
+  return (
+    <h1 className={cn("text-2xl font-semibold text-center", className)}>
+      {children}
+    </h1>
+  );
+};
+
+
+// src/app/retrieve-tickets/page.tsx
+
+"use client";
+import React, { useState } from "react";
+import { Container } from "@/app/components/shared/container";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+
+export default function RetrieveTicketsPage() {
+  const [name, setName] = useState("");
+  const [code, setCode] = useState("");
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    console.log("Name:", name, "Code:", code);
+  };
+
+  return (
+    <Container className="py-16 sm:py-24 flex flex-col items-center">
+      <div className="text-center mb-12">
+        <h1 className="text-2xl font-semibold text-black">
+          Retrieve your tickets.
+        </h1>
+      </div>
+
+      <Card className="w-full max-w-md border-2 border-black rounded-none shadow-none p-2">
+        <CardContent className="pt-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <Label
+                htmlFor="name"
+                className="text-sm font-medium text-black block mb-1 text-left"
+              >
+                Name
+              </Label>
+              <Input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full border-2 border-black rounded-none h-10 px-3 text-sm"
+                required
+              />
+            </div>
+            <div>
+              <Label
+                htmlFor="code"
+                className="text-sm font-medium text-black block mb-1 text-left"
+              >
+                Code
+              </Label>
+              <Input
+                id="code"
+                type="text"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className="w-full border-2 border-black rounded-none h-10 px-3 text-sm"
+                required
+              />
+            </div>
+            <div className="flex justify-center pt-2">
+              <Button
+                type="submit"
+                variant="outline"
+                className="border-2 border-black rounded-md text-black px-8 py-2 text-sm h-auto"
+              >
+                Get Ticket
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </Container>
+  );
+}
+
+
+
+// src/app/shows/[showId]/book/components/artistcard.tsx
+
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+interface Props {
+  className: string;
+}
+
+export const ArtistCard: React.FC<Props> = ({ className }) => {
+  return (
+    <div className="flex justify-center mb-10">
+      <Card className="w-[280px] rounded-3xl border border-gray-950 shadow-md">
+        <CardHeader className="items-center text-center pt-6 pb-0 px-6">
+          <p className="text-xs text-gray-500 uppercase tracking-wider">Date</p>
+          <CardTitle className="text-3xl font-semibold mt-1">Artist</CardTitle>
+          <p className="text-base text-gray-600 mt-1">Location</p>
+        </CardHeader>
+        <CardContent className="text-center pt-8 pb-6 px-6">
+          <p className="text-base text-gray-500">Start - End</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+
+// src/app/shows/[showId]/book/components/booking.tsx
+
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+
+interface Props {
+  className: string;
+  showId: string;
+}
+
+export const Booking: React.FC<Props> = ({ className, showId }) => {
+  return (
+    <div className="w-2/3 flex flex-col justify-between">
+      <div className="text-sm text-gray-950 space-y-2 mt-4">
+        <p>
+          By clicking "Book" you accept that you are not actually booking a
+          ticket as this is a test project and not a real website.
+        </p>
+      </div>
+      <div className="flex items-center space-x-4 mt-6">
+        <Button className="bg-[#f5f5f5] text-black border border-gray-950 rounded-none px-5 py-2 hover:bg-[#f5f5f5]">
+          Your ticket will be available
+          <br /> immediately after booking.
+        </Button>
+        <Button className="bg-white text-black border border-gray-950 rounded px-8 py-2 hover:bg-white">
+          <Link href="/tickets">Book</Link>
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+
+// src/app/shows/[showId]/book/components/inputdetails.tsx
+
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface Props {
+  className: string;
+}
+
+export const InputDetails: React.FC<Props> = ({ className }) => {
+  return (
+    <div className="w-full space-y-4">
+      <div>
+        <Label htmlFor="name" className="block mb-1">
+          Name
+        </Label>
+        <Input type="text" id="name" className="border-gray-950 rounded-none" />
+      </div>
+      <div>
+        <Label htmlFor="address" className="block mb-1">
+          Address
+        </Label>
+        <Input
+          type="text"
+          id="address"
+          className="border-gray-950 rounded-none"
+        />
+      </div>
+      <div className="flex gap-3">
+        <div className="w-1/3">
+          <Label htmlFor="zip" className="block mb-1">
+            ZIP Code
+          </Label>
+          <Input
+            type="text"
+            id="zip"
+            className="border-gray-950 rounded-none"
+          />
+        </div>
+        <div className="flex-grow">
+          <Label htmlFor="city" className="block mb-1">
+            City
+          </Label>
+          <Input
+            type="text"
+            id="city"
+            className="border-gray-950 rounded-none"
+          />
+        </div>
+      </div>
+      <div>
+        <Label htmlFor="country" className="block mb-1">
+          Country
+        </Label>
+        <Select>
+          <SelectTrigger
+            id="country"
+            className="border-gray-950 rounded-none bg-white w-full"
+          >
+            <SelectValue placeholder="Select a country" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="us">United States</SelectItem>
+            <SelectItem value="ca">Canada</SelectItem>
+            <SelectItem value="uk">United Kingdom</SelectItem>
+            <SelectItem value="au">Australia</SelectItem>
+            <SelectItem value="de">Germany</SelectItem>
+            <SelectItem value="fr">France</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+};
+
+
+// src/app/shows/[showId]/book/components/placeshow.tsx
+
+import { cn } from "@/lib/utils";
+import { useReservationStore } from "@/stores/reservation";
+import { useRowsStore } from "@/stores/rows";
+import { toast } from "sonner";
+interface Props {
+  className: string;
+  consertId: number;
+  showId: number;
+}
+export const PlaceShow: React.FC<Props> = ({ className, consertId, showId }) => {
+  const SeatCircle = ({
+    isPink,
+    isSelected,
+    seat,
+  }: {
+    isPink?: boolean;
+    isSelected: boolean;
+    seat: number;
+  }) => (
+    <div
+      data-seat={seat}
+      className={cn(
+        "w-6 h-6 rounded-full border flex-shrink-0 bg-white border-gray-400",
+        isPink && "bg-rose-200 border-rose-400 ",
+        isSelected &&
+          "bg-green-300 border-green-500 transition-all duration-200 ease-in-out hover:bg-green-600 hover:border-green-600 hover:scale-110",
+        "transition-all duration-200 ease-in-out hover:bg-green-300 hover:border-green-500 hover:scale-110"
+      )}
+    ></div>
+  );
+
+  const SeatStaticRow = ({
+    id,
+    label,
+    seatsCount,
+    pinkIndices = [],
+  }: {
+    id: number;
+    label: string;
+    seatsCount: number;
+    pinkIndices?: number[];
+  }) => (
+    <div className="flex items-center space-x-3 mb-2" data-row-id={id}>
+      <div className="w-24 text-sm text-gray-700 text-right shrink-0 pr-1">
+        {label}
+      </div>
+      <div className="flex flex-nowrap space-x-1.5">
+        {Array.from({ length: seatsCount }).map((_, i) => (
+          <SeatCircle
+            seat={i + 1}
+            key={i}
+            isSelected={false}
+            isPink={pinkIndices.includes(i)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+
+  const rows = useRowsStore((state) => state.rows);
+  const { selectedSeats, isLoading, addSelectedSeat, removeSelectedSeat, reservation }=
+    useReservationStore();
+  const handleClickSeat =  async( e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement;
+    const seat = target.dataset.seat;
+    if (!seat) return;
+    const rowId = (target.closest("[data-row-id]") as HTMLDivElement | null)
+      ?.dataset.rowId;
+    if (!rowId || target.classList.contains("bg-rose-200")) return;
+    if (target.classList.contains("bg-green-300 ")) {
+      target.classList.remove("bg-green-300 border-green-500");
+      target.classList.add("bg-white border-gray-400");
+      removeSelectedSeat(Number(rowId), Number(seat));
+    } else {
+      target.classList.add("bg-green-300 border-green-500");
+      target.classList.remove("bg-white border-gray-400");
+      addSelectedSeat(Number(rowId), Number(seat));
+    }
+
+    try {
+      await reservation(consertId, showId);
+    } catch (error) {
+      if (typeof error === "string") {
+        toast(error);
+      }
+      
+    }
+      
+
+    
+    console.log(`Row: ${rowId}, Seat: ${seat}`);
+  };
+
+  return (
+    <div className="lg:col-span-2">
+      <div className="p-6 border rounded-4xl bg-white shadow-md border-gray-950">
+        <div className="flex justify-center mb-6">
+          <div className="bg-green-100 border border-green-300 text-gray-800 py-2 px-20 text-center text-base font-medium">
+            Stage
+          </div>
+        </div>
+
+        <div
+          onClick={handleClickSeat}
+          className="space-y-0.5 overflow-x-auto pb-3"
+        >
+          {rows.map((row, index) => (
+            <SeatStaticRow
+              key={row.id}
+              id={row.id}
+              label={row.name}
+              seatsCount={row.seats.total}
+              pinkIndices={row.seats.unavailable}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+// src/app/shows/[showId]/book/components/selectedplaces.tsx
+
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+interface Props {
+  className: string;
+  showId: string;
+}
+
+export const SelectedPlaces: React.FC<Props> = ({ showId }) => {
+  const detailsPageUrl = `/shows/${showId}/book/details`;
+
+  return (
+    <div className="lg:col-span-1">
+      <Card className="shadow-lg border border-gray-950 rounded-none h-96">
+        <CardHeader className="pt-6 pb-4 px-6">
+          <CardTitle className="text-xl font-semibold">
+            Selected seats
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 pb-6 px-6">
+          <ul className="space-y-1.5 text-sm text-gray-700 mb-8 text-center">
+            <li>Row: Stall 03, Seat: 6</li>
+            <li>Row: Stall 03, Seat: 7</li>
+          </ul>
+          <p className="text-sm text-black font-medium text-center">
+            Your seats expire in 02:35
+          </p>
+        </CardContent>
+        <CardFooter className="px-6 pb-6 pt-2 flex justify-center">
+          
+            <Button
+              asChild
+              variant="outline"
+              className="px-4 py-1 text-xs border border-gray-950 h-auto whitespace-pre-line text-center leading-tight rounded-md"
+            >
+              <Link href={detailsPageUrl}>{"Enter Booking\nDetails"}</Link>
+            </Button>
+          
+        </CardFooter>
+      </Card>
+    </div>
+  );
+};
+
+
+// src/app/shows/[showId]/book/page.tsx
+
+"use client";
+import { PlaceShow } from "./components/placeshow";
+import { SelectedPlaces } from "./components/selectedplaces";
+import { Container } from "@/app/components/shared/container";
+import { Title } from "@/app/components/shared/title";
+import { InputDetails } from "./components/inputdetails";
+import { Booking } from "./components/booking";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { ShowCard } from "@/app/components/shared/show-card";
+import { UseShowsStore } from "@/stores/shows";
+import { useRowsStore } from "@/stores/rows";
+import { Toaster } from "@/components/ui/sonner";
+
+
+export default function BookShowPage() {
+  const { getShowById } = UseShowsStore();
+  const { fetchRows } = useRowsStore();
+  const params = useParams<{ showId: string }>();
+  const [isBooking, setBooking] = useState(false);
+  const show = getShowById(Number(params.showId));
+  if (!show) {
+    return <div>Show not found</div>;
+  }
+  useEffect(() => {
+    fetchRows(show.concertId, show.id);
+  }, []);
+
+  return (
+    <Container className="py-8">
+      <Title className="mb-4">Book seats for your show</Title>
+      <ShowCard show={show} className="max-w-60 m-auto mb-4"></ShowCard>
+      {!isBooking ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <PlaceShow consertId={show.concertId} showId={show.id} className="" />
+          <SelectedPlaces className="" showId={params.showId} />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_3fr] gap-4 mt-6">
+          <SelectedPlaces className="" showId={params.showId} />
+          <div className="border border-gray-950 p-4 shadow-sm">
+            <h2 className="text-lg font-medium mb-4">
+              Please enter your details
+            </h2>
+            <div className="flex gap-4">
+              <InputDetails className="" />
+              <div className="border-l border-gray-950 self-stretch"></div>
+              <Booking className="" showId={params.showId} />
+            </div>
+          </div>
+        </div>
+      )}
+    </Container>
+  );
+}
+
+
+// src/app/tickets/components/ArtistInfoBlock.tsx
+
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+interface ArtistInfoBlockProps {
+  artist?: string;
+  location?: string;
+  date?: string;
+  time?: string;
+}
+
+export const ArtistInfoBlock: React.FC<ArtistInfoBlockProps> = ({
+  artist = "Artist",
+  location = "Location",
+  date = "Date",
+  time = "Start - End",
+}) => (
+  <Card className="rounded-3xl border-2 border-black text-black shadow-sm">
+    <CardHeader className="items-center text-center pt-6 pb-0 px-6">
+      <p className="text-xs text-black uppercase tracking-wider">{date}</p>
+      <CardTitle className="text-3xl font-semibold mt-1">{artist}</CardTitle>
+      <p className="text-base text-black mt-1">{location}</p>
+    </CardHeader>
+    <CardContent className="text-center pt-8 pb-6 px-6">
+      <p className="text-base text-black">{time}</p>
+    </CardContent>
+  </Card>
+);
+
+
+// src/app/tickets/components/TicketDisplayCard.tsx
+
+import React from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import { ArtistInfoBlock } from "./ArtistInfoBlock";
+interface TicketDisplayCardProps {
+  row: number;
+  seat: number;
+  code: string;
+  ticketTitle?: string;
+}
+
+export const TicketDisplayCard: React.FC<TicketDisplayCardProps> = ({
+  row,
+  seat,
+  code,
+  ticketTitle = "Ticket",
+}) => (
+  <Card className="border-2 border-black text-black shadow-none rounded-none flex flex-col">
+    <CardHeader className="pt-6 pb-3 px-6 text-center">
+      <CardTitle className="text-lg font-semibold">{ticketTitle}</CardTitle>
+      <div className="text-sm mt-2">
+        <p>Row: {row}</p>
+        <p>Seat: {seat}</p>
+      </div>
+    </CardHeader>
+    <CardContent className="px-6 pt-4 pb-6 flex-grow">
+      <div>
+        <div className="border-2 border-black text-black rounded-xl py-2 px-4 text-center mb-6">
+          <p className="text-sm">Code: {code}</p>
+        </div>
+        <ArtistInfoBlock />
+      </div>
+    </CardContent>
+    <CardFooter className="px-6 pb-6 pt-4 flex justify-center">
+      <Button
+        variant="outline"
+        className="rounded-md border-2 border-black text-black px-5 py-1.5 text-sm"
+      >
+        Cancel Ticket
+      </Button>
+    </CardFooter>
+  </Card>
+);
+
+
+// src/app/tickets/components/YourDetailsCard.tsx
+
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export const YourDetailsCard: React.FC = () => (
+  <Card className="border-2 border-black text-black shadow-none rounded-none mb-10 max-w-lg mx-auto">
+    <CardHeader className="pt-6 pb-2 px-6">
+      <CardTitle className="text-lg font-semibold">Your Details</CardTitle>
+    </CardHeader>
+    <CardContent className="px-6 pt-4 pb-6 flex justify-between">
+      <div>
+        <p className="text-sm text-black">Name</p>
+        <p className="text-sm mt-1">xxxx xxxx</p>
+      </div>
+      <div className="text-left">
+        <p className="text-sm text-black">Booked on</p>
+        <p className="text-sm mt-1">dd/mm/yyyy</p>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+
+// src/app/tickets/page.tsx
+
+import { Container } from "@/app/components/shared/container";
+import { YourDetailsCard } from "./components/YourDetailsCard";
+import { TicketDisplayCard } from "./components/TicketDisplayCard";
+export default function TicketsPage() {
+  return (
+    <Container className="py-10 sm:py-16">
+      <div className="text-center mb-10">
+        <h1 className="text-2xl font-semibold">Your Tickets are ready!</h1>
+      </div>
+
+      <div className="max-w-3xl mx-auto">
+        <YourDetailsCard />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <TicketDisplayCard row={2} seat={13} code="VKBWSD3FEK" />
+          <TicketDisplayCard row={2} seat={14} code="OHCZ3FADYE" />
+        </div>
+      </div>
+    </Container>
+  );
+}
+
+
+/* src/app/globals.css */
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+
+// src/app/layout.tsx
+
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import { Header } from "./components/shared/header";
+import { Container } from "./components/shared/container";
+import { LoaderShows } from "./components/shared/loader-shows";
+import { Toaster } from "@/components/ui/sonner";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "Create Next App",
+  description: "Generated by create next app",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <Header />
+        <Container>
+          <LoaderShows>{children}</LoaderShows>
+        </Container>
+      <Toaster/>
+      </body>
+    </html>
+  );
+}
+
+
+// src/app/page.tsx
+
+"use client";
+import { Title } from "./components/shared/title";
+import { Filters } from "./components/shared/filters";
+import { ShowList } from "./components/shared/show-list";
+export default function Home() {
+  return (
+    <div className="">
+      <Title className="mt-4">Checkout these amazing concerts in Graz.</Title>
+      <Filters className=""></Filters>
+      <ShowList className=""></ShowList>
+    </div>
+  );
+}
+
+// src/components/ui/alert.tsx
+
+import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
+
+import { cn } from "@/lib/utils"
+
+const alertVariants = cva(
+  "relative w-full rounded-lg border px-4 py-3 text-sm grid has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] grid-cols-[0_1fr] has-[>svg]:gap-x-3 gap-y-0.5 items-start [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current",
+  {
+    variants: {
+      variant: {
+        default: "bg-card text-card-foreground",
+        destructive:
+          "text-destructive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-destructive/90",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
+
+function Alert({
+  className,
+  variant,
+  ...props
+}: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
+  return (
+    <div
+      data-slot="alert"
+      role="alert"
+      className={cn(alertVariants({ variant }), className)}
+      {...props}
+    />
+  )
+}
+
+function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="alert-title"
+      className={cn(
+        "col-start-2 line-clamp-1 min-h-4 font-medium tracking-tight",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function AlertDescription({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="alert-description"
+      className={cn(
+        "text-muted-foreground col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Alert, AlertTitle, AlertDescription }
+
+
+// src/components/ui/button.tsx
+
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
+
+import { cn } from "@/lib/utils"
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  {
+    variants: {
+      variant: {
+        default:
+          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
+        destructive:
+          "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+        outline:
+          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+        secondary:
+          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
+        ghost:
+          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-9 px-4 py-2 has-[>svg]:px-3",
+        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
+        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
+        icon: "size-9",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+
+function Button({
+  className,
+  variant,
+  size,
+  asChild = false,
+  ...props
+}: React.ComponentProps<"button"> &
+  VariantProps<typeof buttonVariants> & {
+    asChild?: boolean
+  }) {
+  const Comp = asChild ? Slot : "button"
+
+  return (
+    <Comp
+      data-slot="button"
+      className={cn(buttonVariants({ variant, size, className }))}
+      {...props}
+    />
+  )
+}
+
+export { Button, buttonVariants }
+
+
+// src/components/ui/card.tsx
+
+import * as React from "react"
+
+import { cn } from "@/lib/utils"
+
+function Card({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card"
+      className={cn(
+        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-header"
+      className={cn(
+        "@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-title"
+      className={cn("leading-none font-semibold", className)}
+      {...props}
+    />
+  )
+}
+
+function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-description"
+      className={cn("text-muted-foreground text-sm", className)}
+      {...props}
+    />
+  )
+}
+
+function CardAction({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-action"
+      className={cn(
+        "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function CardContent({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-content"
+      className={cn("px-6", className)}
+      {...props}
+    />
+  )
+}
+
+function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-footer"
+      className={cn("flex items-center px-6 [.border-t]:pt-6", className)}
+      {...props}
+    />
+  )
+}
+
+export {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardAction,
+  CardDescription,
+  CardContent,
+}
+
+
+// src/components/ui/input.tsx
+
+import * as React from "react"
+
+import { cn } from "@/lib/utils"
+
+function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+  return (
+    <input
+      type={type}
+      data-slot="input"
+      className={cn(
+        "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Input }
+
+
+// src/components/ui/label.tsx
+
+"use client"
+
+import * as React from "react"
+import * as LabelPrimitive from "@radix-ui/react-label"
+
+import { cn } from "@/lib/utils"
+
+function Label({
+  className,
+  ...props
+}: React.ComponentProps<typeof LabelPrimitive.Root>) {
+  return (
+    <LabelPrimitive.Root
+      data-slot="label"
+      className={cn(
+        "flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Label }
+
+
+// src/components/ui/pagination.tsx
+
+import * as React from "react"
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  MoreHorizontalIcon,
+} from "lucide-react"
+
+import { cn } from "@/lib/utils"
+import { Button, buttonVariants } from "@/components/ui/button"
+
+function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
+  return (
+    <nav
+      role="navigation"
+      aria-label="pagination"
+      data-slot="pagination"
+      className={cn("mx-auto flex w-full justify-center", className)}
+      {...props}
+    />
+  )
+}
+
+function PaginationContent({
+  className,
+  ...props
+}: React.ComponentProps<"ul">) {
+  return (
+    <ul
+      data-slot="pagination-content"
+      className={cn("flex flex-row items-center gap-1", className)}
+      {...props}
+    />
+  )
+}
+
+function PaginationItem({ ...props }: React.ComponentProps<"li">) {
+  return <li data-slot="pagination-item" {...props} />
+}
+
+type PaginationLinkProps = {
+  isActive?: boolean
+} & Pick<React.ComponentProps<typeof Button>, "size"> &
+  React.ComponentProps<"a">
+
+function PaginationLink({
+  className,
+  isActive,
+  size = "icon",
+  ...props
+}: PaginationLinkProps) {
+  return (
+    <a
+      aria-current={isActive ? "page" : undefined}
+      data-slot="pagination-link"
+      data-active={isActive}
+      className={cn(
+        buttonVariants({
+          variant: isActive ? "outline" : "ghost",
+          size,
+        }),
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function PaginationPrevious({
+  className,
+  ...props
+}: React.ComponentProps<typeof PaginationLink>) {
+  return (
+    <PaginationLink
+      aria-label="Go to previous page"
+      size="default"
+      className={cn("gap-1 px-2.5 sm:pl-2.5", className)}
+      {...props}
+    >
+      <ChevronLeftIcon />
+      <span className="hidden sm:block">Previous</span>
+    </PaginationLink>
+  )
+}
+
+function PaginationNext({
+  className,
+  ...props
+}: React.ComponentProps<typeof PaginationLink>) {
+  return (
+    <PaginationLink
+      aria-label="Go to next page"
+      size="default"
+      className={cn("gap-1 px-2.5 sm:pr-2.5", className)}
+      {...props}
+    >
+      <span className="hidden sm:block">Next</span>
+      <ChevronRightIcon />
+    </PaginationLink>
+  )
+}
+
+function PaginationEllipsis({
+  className,
+  ...props
+}: React.ComponentProps<"span">) {
+  return (
+    <span
+      aria-hidden
+      data-slot="pagination-ellipsis"
+      className={cn("flex size-9 items-center justify-center", className)}
+      {...props}
+    >
+      <MoreHorizontalIcon className="size-4" />
+      <span className="sr-only">More pages</span>
+    </span>
+  )
+}
+
+export {
+  Pagination,
+  PaginationContent,
+  PaginationLink,
+  PaginationItem,
+  PaginationPrevious,
+  PaginationNext,
+  PaginationEllipsis,
+}
+
+
+// src/components/ui/select.tsx
+
+"use client"
+
+import * as React from "react"
+import * as SelectPrimitive from "@radix-ui/react-select"
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+
+function Select({
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Root>) {
+  return <SelectPrimitive.Root data-slot="select" {...props} />
+}
+
+function SelectGroup({
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Group>) {
+  return <SelectPrimitive.Group data-slot="select-group" {...props} />
+}
+
+function SelectValue({
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Value>) {
+  return <SelectPrimitive.Value data-slot="select-value" {...props} />
+}
+
+function SelectTrigger({
+  className,
+  size = "default",
+  children,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
+  size?: "sm" | "default"
+}) {
+  return (
+    <SelectPrimitive.Trigger
+      data-slot="select-trigger"
+      data-size={size}
+      className={cn(
+        "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex w-fit items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className
+      )}
+      {...props}
+    >
+      {children}
+      <SelectPrimitive.Icon asChild>
+        <ChevronDownIcon className="size-4 opacity-50" />
+      </SelectPrimitive.Icon>
+    </SelectPrimitive.Trigger>
+  )
+}
+
+function SelectContent({
+  className,
+  children,
+  position = "popper",
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Content>) {
+  return (
+    <SelectPrimitive.Portal>
+      <SelectPrimitive.Content
+        data-slot="select-content"
+        className={cn(
+          "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border shadow-md",
+          position === "popper" &&
+            "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+          className
+        )}
+        position={position}
+        {...props}
+      >
+        <SelectScrollUpButton />
+        <SelectPrimitive.Viewport
+          className={cn(
+            "p-1",
+            position === "popper" &&
+              "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1"
+          )}
+        >
+          {children}
+        </SelectPrimitive.Viewport>
+        <SelectScrollDownButton />
+      </SelectPrimitive.Content>
+    </SelectPrimitive.Portal>
+  )
+}
+
+function SelectLabel({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Label>) {
+  return (
+    <SelectPrimitive.Label
+      data-slot="select-label"
+      className={cn("text-muted-foreground px-2 py-1.5 text-xs", className)}
+      {...props}
+    />
+  )
+}
+
+function SelectItem({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Item>) {
+  return (
+    <SelectPrimitive.Item
+      data-slot="select-item"
+      className={cn(
+        "focus:bg-accent focus:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        className
+      )}
+      {...props}
+    >
+      <span className="absolute right-2 flex size-3.5 items-center justify-center">
+        <SelectPrimitive.ItemIndicator>
+          <CheckIcon className="size-4" />
+        </SelectPrimitive.ItemIndicator>
+      </span>
+      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+    </SelectPrimitive.Item>
+  )
+}
+
+function SelectSeparator({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Separator>) {
+  return (
+    <SelectPrimitive.Separator
+      data-slot="select-separator"
+      className={cn("bg-border pointer-events-none -mx-1 my-1 h-px", className)}
+      {...props}
+    />
+  )
+}
+
+function SelectScrollUpButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.ScrollUpButton>) {
+  return (
+    <SelectPrimitive.ScrollUpButton
+      data-slot="select-scroll-up-button"
+      className={cn(
+        "flex cursor-default items-center justify-center py-1",
+        className
+      )}
+      {...props}
+    >
+      <ChevronUpIcon className="size-4" />
+    </SelectPrimitive.ScrollUpButton>
+  )
+}
+
+function SelectScrollDownButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.ScrollDownButton>) {
+  return (
+    <SelectPrimitive.ScrollDownButton
+      data-slot="select-scroll-down-button"
+      className={cn(
+        "flex cursor-default items-center justify-center py-1",
+        className
+      )}
+      {...props}
+    >
+      <ChevronDownIcon className="size-4" />
+    </SelectPrimitive.ScrollDownButton>
+  )
+}
+
+export {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectScrollDownButton,
+  SelectScrollUpButton,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+}
+
+
+// src/components/ui/skeleton.tsx
+
+import { cn } from "@/lib/utils"
+
+function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="skeleton"
+      className={cn("bg-accent animate-pulse rounded-md", className)}
+      {...props}
+    />
+  )
+}
+
+export { Skeleton }
+
+
+// src/components/ui/sonner.tsx
+
+"use client"
+
+import { useTheme } from "next-themes"
+import { Toaster as Sonner, ToasterProps } from "sonner"
+
+const Toaster = ({ ...props }: ToasterProps) => {
+  const { theme = "system" } = useTheme()
+
+  return (
+    <Sonner
+      theme={theme as ToasterProps["theme"]}
+      className="toaster group"
+      style={
+        {
+          "--normal-bg": "var(--popover)",
+          "--normal-text": "var(--popover-foreground)",
+          "--normal-border": "var(--border)",
+        } as React.CSSProperties
+      }
+      {...props}
+    />
+  )
+}
+
+export { Toaster }
+
+// src/components/ui/textarea.tsx
+
+import * as React from "react"
+
+import { cn } from "@/lib/utils"
+
+function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
+  return (
+    <textarea
+      data-slot="textarea"
+      className={cn(
+        "border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Textarea }
+
+
+// src/lib/utils.ts
+
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+
+// src/services/api-instance.ts
+
+import axios from "axios";
+
+export const ApiInstance = axios.create({
+  baseURL: "https://apic.polytech.kz/api/v1",
+});
+
+// src/services/api.ts
+
+import * as shows from "./shows";
+import * as rows from "./rows";
+import * as reservation from "./reservation";
+ 
+export const Api = {
+  shows,
+  rows,
+  reservation,
+};
+
+
+// src/services/reservation.ts
+
+import { ApiInstance } from './api-instance';
+
+export type ReservationBody = {
+    reservation_token?: string|null;
+    reservation: { row: number; seat: number }[] | [];
+    duration?: number | null;
+
+}
+
+type ReservationResponse = {
+    reserved: boolean;
+    reservation_token: string;
+    reserved_until: string;
+}
+
+
+export const reservation = async (
+    concertId: number, 
+    showId: number, 
+    body: ReservationBody): Promise<{reservation_token: string, reserved_until:string}> => {
+    const res = await ApiInstance.post<ReservationResponse>(
+        `/concerts/${concertId}/shows/${showId}/reservation`,
+        body);
+        return {
+            reservation_token: res.data.reservation_token,
+            reserved_until: res.data.reserved_until
+        }
+}
+
+// src/services/rows.ts
+
+import { Row } from "@/@types/row";
+import { ApiInstance } from "./api-instance";
+
+export const getAll = async (
+  concertId: number,
+  showId: number
+): Promise<Row[]> => {
+  const res = await ApiInstance.get<{ rows: Row[] }>(
+    `/concerts/${concertId}/shows/${showId}/seating`
+  );
+  return res.data.rows;
+};
+
+
+// src/services/shows.ts
+
+import { ApiInstance } from "@/services/api-instance";
+import { Show } from "@/@types/show";
+
+type ConcertApiResponse = {
+  concerts: {
+    id: number;
+    artist: string;
+    location: {
+      id: number;
+      name: string;
+    };
+    shows: {
+      id: number;
+      start: string;
+      end: string;
+    }[];
+  }[];
+};
+
+export const getAll = async (): Promise<Show[]> => {
+  const res = await ApiInstance.get<ConcertApiResponse>("/concerts");
+  const shows = res.data.concerts
+    .map((concert) => {
+      return concert.shows.map((show) => {
+        return {
+          id: show.id,
+          artist: concert.artist,
+          location: concert.location.name,
+          date: new Date(show.start).toLocaleDateString(),
+          start: new Date(show.start).toLocaleDateString("ru-RU", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          end: new Date(show.end).toLocaleDateString("ru-RU", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          concertId: concert.id,
+        };
+      });
+    })
+    .flat();
+
+  return shows;
+};
+
+
+// src/stores/reservation.ts
+
+import { create } from "zustand";
+import { ReservationBody } from "../services/reservation";
+import { reservation } from "../services/reservation";
+import { Api } from "@/services/api";
+import { AxiosError } from "axios";
+
+interface ReservationStoreProps {
+  selectedSeats: { row: number; seat: number }[];
+  isLoading: boolean;
+  reservationToken: string | null;
+  setSelectedSeats: (seats: { row: number; seat: number }[]) => void;
+  addSelectedSeat: (row: number, seat: number) => void;
+  removeSelectedSeat: (row: number, seat: number) => void;
+  reservation: (concertId: number, showId: number) => Promise<void>;
+}
+
+interface ErrorResponseNotExist {
+  error: string;
+}
+
+interface ErrorResponseValidation {
+  erroe: string;
+}
+
+export const useReservationStore = create<ReservationStoreProps>((set, get) => ({
+  selectedSeats: [],
+  isLoading: false,
+  reservationToken: null,
+  setSelectedSeats: (seats: { row: number; seat: number }[]) => set({ selectedSeats: seats }),
+  
+  addSelectedSeat: (row: number, seat: number) => set((state) => ({
+      selectedSeats: [...state.selectedSeats, { row, seat }],
+    })),
+  
+    removeSelectedSeat: (row: number, seat: number) => set((state) => ({
+      selectedSeats: state.selectedSeats.filter(
+        (s) => s.row !== row || s.seat !== seat
+      ),
+    })),
+  
+    reservation: async (concertId: number, showId: number) => {
+        try {
+            const body:ReservationBody = {
+                reservation: get().selectedSeats,
+            }
+            if (get().reservationToken) {
+                body.reservation_token = get().reservationToken;
+            }   
+
+        const res = await Api.reservation.reservation(concertId, showId, body);
+      } catch (error) {
+        console.error("Error reserving seats:", error);
+        
+        if (error && (error as AxiosError).isAxiosError) {
+          const axiosError = error as AxiosError<ErrorResponseNotExist>;
+          if (axiosError.response?.status !== 422) {
+            console.error("Error fetching rows:", error);
+            throw axiosError.response?.data.error;
+          }
+        }
+        
+        throw error;
+      }
+    }
+}));
+
+// src/stores/rows.ts
+
+import { Row } from "@/@types/row";
+import { Api } from "@/services/api";
+import { AxiosError } from "axios";
+import { create } from "zustand";
+
+interface RowsStoreProps {
+  rows: Row[];
+  isLoading: boolean;
+  fetchRows: (concertId: number, showId: number) => Promise<void>;
+}
+interface ErrorResponseNotExist {
+  error: string;
+}
+export const useRowsStore = create<RowsStoreProps>((set) => ({
+  rows: [],
+  isLoading: false,
+  fetchRows: async (concertId: number, showId: number) => {
+    try {
+      set({ isLoading: true });
+      const rows = await Api.rows.getAll(concertId, showId);
+      set({ rows });
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponseNotExist>;
+      console.error("Error fetching rows:", error);
+      throw axiosError.response?.data.error;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+}));
+
+
+// src/stores/shows.ts
+
+import { Show } from "@/@types/show";
+import { Api } from "@/services/api";
+import { create } from "zustand";
+
+interface showsStoreProps {
+  shows: Show[];
+  _shows: Show[];
+  isLoading: boolean;
+  artists: string[];
+  locations: string[];
+
+  fetchShows: () => Promise<void>;
+  filterShows: (artist: string, location: string, date: string) => void;
+  getShowById: (id: number) => Show | undefined;
+}
+
+export const UseShowsStore = create<showsStoreProps>((set, get) => ({
+  shows: [],
+  _shows: [],
+  isLoading: false,
+  artists: [],
+  locations: [],
+
+  fetchShows: async () => {
+    set({ isLoading: true });
+    const shows = await Api.shows.getAll();
+    set({ shows, _shows: shows });
+    set({ artists: [...new Set(shows.map((show: any) => show.artist))] });
+    set({ locations: [...new Set(shows.map((show: any) => show.location))] });
+    set({ isLoading: false });
+  },
+
+  filterShows: (artist: string, location: string, date: string) => {
+    let shows = [...get()._shows];
+    if (artist) {
+      shows = shows.filter((show) => show.artist === artist);
+    }
+    if (location) {
+      shows = shows.filter((show) => show.location === location);
+    }
+    if (date) {
+      shows = shows.filter(
+        (show) => show.date === new Date(date).toLocaleDateString()
+      );
+    }
+    set({ shows });
+  },
+
+  getShowById: (id: number) => {
+    const show = get()._shows.find((show) => show.id === id);
+    return show;
+  },
+}));
+
+
+C:.
+├───@types
+│       row.ts
+│       show.ts
+│
+├───app
+│   │   favicon.ico
+│   │   globals.css
+│   │   layout.tsx
+│   │   page.tsx
+│   │
+│   ├───components
+│   │   └───shared
+│   │           container.tsx
+│   │           filters.tsx
+│   │           header.tsx
+│   │           loader-shows.tsx
+│   │           show-card.tsx
+│   │           show-list.tsx
+│   │           title.tsx
+│   │
+│   ├───retrieve-tickets
+│   │       page.tsx
+│   │
+│   ├───shows
+│   │   └───[showId]
+│   │       └───book
+│   │           │   page.tsx
+│   │           │
+│   │           └───components
+│   │                   artistcard.tsx
+│   │                   booking.tsx
+│   │                   inputdetails.tsx
+│   │                   placeshow.tsx
+│   │                   selectedplaces.tsx
+│   │
+│   └───tickets
+│       │   page.tsx
+│       │
+│       └───components
+│               ArtistInfoBlock.tsx
+│               TicketDisplayCard.tsx
+│               YourDetailsCard.tsx
+│
+├───components
+│   └───ui
+│           alert.tsx
+│           button.tsx
+│           card.tsx
+│           input.tsx
+│           label.tsx
+│           pagination.tsx
+│           select.tsx
+│           skeleton.tsx
+│           sonner.tsx
+│           textarea.tsx
+│
+├───lib
+│       utils.ts
+│
+├───services
+│       api-instance.ts
+│       api.ts
+│       reservation.ts
+│       rows.ts
+│       shows.ts
+│
+└───stores
+        reservation.ts
+        rows.ts
+        shows.ts

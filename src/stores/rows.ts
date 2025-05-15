@@ -1,3 +1,5 @@
+// src/stores/rows.ts
+
 import { Row } from "@/@types/row";
 import { Api } from "@/services/api";
 import { AxiosError } from "axios";
