@@ -1,9 +1,9 @@
 import { ApiInstance } from './api-instance';
 
-type ReservationBody = {
-    reservation_token: string|null;
-    reservation: { row: number; seat: number }[];
-    duration: number | null;
+export type ReservationBody = {
+    reservation_token?: string|null;
+    reservation: { row: number; seat: number }[] | [];
+    duration?: number | null;
 
 }
 

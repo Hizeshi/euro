@@ -1,9 +1,13 @@
 import { cn } from "@/lib/utils";
+import { useReservationStore } from "@/stores/reservation";
 import { useRowsStore } from "@/stores/rows";
+import { toast } from "sonner";
 interface Props {
   className: string;
+  consertId: number;
+  showId: number;
 }
-export const PlaceShow: React.FC<Props> = ({ className }) => {
+export const PlaceShow: React.FC<Props> = ({ className, consertId, showId }) => {
   const SeatCircle = ({
     isPink,
     isSelected,
@@ -17,8 +21,9 @@ export const PlaceShow: React.FC<Props> = ({ className }) => {
       data-seat={seat}
       className={cn(
         "w-6 h-6 rounded-full border flex-shrink-0 bg-white border-gray-400",
-        isPink && "bg-rose-200 border-rose-400",
-        isSelected && "bg-green-300 border-green-500",
+        isPink && "bg-rose-200 border-rose-400 ",
+        isSelected &&
+          "bg-green-300 border-green-500 transition-all duration-200 ease-in-out hover:bg-green-600 hover:border-green-600 hover:scale-110",
         "transition-all duration-200 ease-in-out hover:bg-green-300 hover:border-green-500 hover:scale-110"
       )}
     ></div>
@@ -53,14 +58,36 @@ export const PlaceShow: React.FC<Props> = ({ className }) => {
   );
 
   const rows = useRowsStore((state) => state.rows);
-  const handleClickSeat = (e: React.MouseEvent<HTMLDivElement>) => {
+  const { selectedSeats, isLoading, addSelectedSeat, removeSelectedSeat, reservation }=
+    useReservationStore();
+  const handleClickSeat =  async( e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLDivElement;
     const seat = target.dataset.seat;
     if (!seat) return;
     const rowId = (target.closest("[data-row-id]") as HTMLDivElement | null)
       ?.dataset.rowId;
     if (!rowId || target.classList.contains("bg-rose-200")) return;
+    if (target.classList.contains("bg-green-300 ")) {
+      target.classList.remove("bg-green-300 border-green-500");
+      target.classList.add("bg-white border-gray-400");
+      removeSelectedSeat(Number(rowId), Number(seat));
+    } else {
+      target.classList.add("bg-green-300 border-green-500");
+      target.classList.remove("bg-white border-gray-400");
+      addSelectedSeat(Number(rowId), Number(seat));
+    }
 
+    try {
+      await reservation(consertId, showId);
+    } catch (error) {
+      if (typeof error === "string") {
+        toast(error);
+      }
+      
+    }
+      
+
+    
     console.log(`Row: ${rowId}, Seat: ${seat}`);
   };
 

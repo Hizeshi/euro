@@ -10,6 +10,8 @@ import { useEffect, useState } from "react";
 import { ShowCard } from "@/app/components/shared/show-card";
 import { UseShowsStore } from "@/stores/shows";
 import { useRowsStore } from "@/stores/rows";
+import { Toaster } from "@/components/ui/sonner";
+
 
 export default function BookShowPage() {
   const { getShowById } = UseShowsStore();
@@ -30,7 +32,7 @@ export default function BookShowPage() {
       <ShowCard show={show} className="max-w-60 m-auto mb-4"></ShowCard>
       {!isBooking ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <PlaceShow className="" />
+          <PlaceShow consertId={show.concertId} showId={show.id} className="" />
           <SelectedPlaces className="" showId={params.showId} />
         </div>
       ) : (
