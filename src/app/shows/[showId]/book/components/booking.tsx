@@ -1,16 +1,15 @@
 // src/app/shows/[showId]/book/components/booking.tsx
-
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { cn } from "@/lib/utils"; 
 
 interface Props {
-  className: string;
+  className?: string;
   showId: string;
 }
 
 export const Booking: React.FC<Props> = ({ className, showId }) => {
   return (
-    <div className="w-2/3 flex flex-col justify-between">
+    <div className={cn("w-full md:w-2/3 flex flex-col justify-between", className)}> {/* Сделал w-full для мобилок, md:w-2/3 */}
       <div className="text-sm text-gray-950 space-y-2 mt-4">
         <p>
           By clicking "Book" you accept that you are not actually booking a
@@ -18,12 +17,13 @@ export const Booking: React.FC<Props> = ({ className, showId }) => {
         </p>
       </div>
       <div className="flex items-center space-x-4 mt-6">
-        <Button className="bg-[#f5f5f5] text-black border border-gray-950 rounded-none px-5 py-2 hover:bg-[#f5f5f5]">
+        <Button 
+            variant="outline"
+            className="border-gray-950 rounded-none px-5 py-2 text-left text-xs sm:text-sm w-full" // Сделал текст меньше и адаптировал ширину
+            disabled 
+        >
           Your ticket will be available
           <br /> immediately after booking.
-        </Button>
-        <Button className="bg-white text-black border border-gray-950 rounded px-8 py-2 hover:bg-white">
-          <Link href="/tickets">Book</Link>
         </Button>
       </div>
     </div>

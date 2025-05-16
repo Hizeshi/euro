@@ -16,6 +16,14 @@ interface showsStoreProps {
   getShowById: (id: number) => Show | undefined;
 }
 
+const formatDateYyyyMmDdToDdMmYyyy = (yyyyMmDd: string): string => {
+    if (!yyyyMmDd || !/^\d{4}-\d{2}-\d{2}$/.test(yyyyMmDd)) {
+        return yyyyMmDd; 
+    }
+    const parts = yyyyMmDd.split('-');
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+};
+
 export const UseShowsStore = create<showsStoreProps>((set, get) => ({
   shows: [],
   _shows: [],
@@ -24,32 +32,42 @@ export const UseShowsStore = create<showsStoreProps>((set, get) => ({
   locations: [],
 
   fetchShows: async () => {
+    if (get()._shows.length > 0 && !get().isLoading) return;
     set({ isLoading: true });
-    const shows = await Api.shows.getAll();
-    set({ shows, _shows: shows });
-    set({ artists: [...new Set(shows.map((show: any) => show.artist))] });
-    set({ locations: [...new Set(shows.map((show: any) => show.location))] });
-    set({ isLoading: false });
+    try {
+      const fetchedShows = await Api.shows.getAll();
+      set({ 
+        shows: fetchedShows, 
+        _shows: fetchedShows,
+        artists: [...new Set(fetchedShows.map((show: Show) => show.artist))].sort(),
+        locations: [...new Set(fetchedShows.map((show: Show) => show.location))].sort(),
+        isLoading: false 
+      });
+    } catch (error) {
+        console.error("Failed to fetch shows:", error);
+        set({ isLoading: false, shows: [], _shows: [], artists: [], locations: [] });
+    }
   },
 
-  filterShows: (artist: string, location: string, date: string) => {
-    let shows = [...get()._shows];
+  filterShows: (artist: string, location: string, dateInputYyyyMmDd: string) => {
+    let filteredShows = [...get()._shows];
     if (artist) {
-      shows = shows.filter((show) => show.artist === artist);
+      filteredShows = filteredShows.filter((show) => show.artist === artist);
     }
     if (location) {
-      shows = shows.filter((show) => show.location === location);
+      filteredShows = filteredShows.filter((show) => show.location === location);
     }
-    if (date) {
-      shows = shows.filter(
-        (show) => show.date === new Date(date).toLocaleDateString()
+    if (dateInputYyyyMmDd) {
+      const filterDateDdMmYyyy = formatDateYyyyMmDdToDdMmYyyy(dateInputYyyyMmDd);
+      filteredShows = filteredShows.filter(
+        (show) => show.date === filterDateDdMmYyyy
       );
     }
-    set({ shows });
+    set({ shows: filteredShows });
   },
 
   getShowById: (id: number) => {
-    const show = get()._shows.find((show) => show.id === id);
+    const show = get()._shows.find((s) => s.id === id);
     return show;
   },
 }));

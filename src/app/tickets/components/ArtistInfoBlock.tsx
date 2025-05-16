@@ -1,20 +1,20 @@
 // src/app/tickets/components/ArtistInfoBlock.tsx
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ArtistInfoBlockProps {
-  artist?: string;
-  location?: string;
-  date?: string;
-  time?: string;
+  artist: string;
+  location: string;
+  date: string; 
+  time: string; 
 }
 
+// Именованный экспорт
 export const ArtistInfoBlock: React.FC<ArtistInfoBlockProps> = ({
-  artist = "Artist",
-  location = "Location",
-  date = "Date",
-  time = "Start - End",
+  artist,
+  location,
+  date,
+  time,
 }) => (
   <Card className="rounded-3xl border-2 border-black text-black shadow-sm">
     <CardHeader className="items-center text-center pt-6 pb-0 px-6">
@@ -27,3 +27,4 @@ export const ArtistInfoBlock: React.FC<ArtistInfoBlockProps> = ({
     </CardContent>
   </Card>
 );
+

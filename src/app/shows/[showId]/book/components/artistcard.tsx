@@ -1,5 +1,4 @@
 // src/app/shows/[showId]/book/components/artistcard.tsx
-
 import {
   Card,
   CardContent,
@@ -9,7 +8,11 @@ import {
 } from "@/components/ui/card";
 
 interface Props {
-  className: string;
+  className?: string;
+  date?: string;
+  artist?: string;
+  location?: string;
+  time?: string;
 }
 
 export const ArtistCard: React.FC<Props> = ({ className }) => {

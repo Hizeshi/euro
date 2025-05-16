@@ -1,22 +1,22 @@
 // src/app/tickets/page.tsx
 
+"use client";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Container } from "@/app/components/shared/container";
-import { YourDetailsCard } from "./components/YourDetailsCard";
-import { TicketDisplayCard } from "./components/TicketDisplayCard";
+
 export default function TicketsPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/retrieve-tickets");
+  }, [router]);
+
   return (
-    <Container className="py-10 sm:py-16">
-      <div className="text-center mb-10">
-        <h1 className="text-2xl font-semibold">Your Tickets are ready!</h1>
-      </div>
-
-      <div className="max-w-3xl mx-auto">
-        <YourDetailsCard />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <TicketDisplayCard row={2} seat={13} code="VKBWSD3FEK" />
-          <TicketDisplayCard row={2} seat={14} code="OHCZ3FADYE" />
-        </div>
+    <Container className="py-10 sm:py-16 flex justify-center items-center min-h-[calc(100vh-200px)]">
+      <div className="text-center">
+        <h1 className="text-2xl font-semibold">Loading your tickets...</h1>
+        <p className="text-muted-foreground mt-2">Redirecting...</p>
       </div>
     </Container>
   );

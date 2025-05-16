@@ -1,32 +1,27 @@
 // src/stores/rows.ts
-
 import { Row } from "@/@types/row";
 import { Api } from "@/services/api";
-import { AxiosError } from "axios";
 import { create } from "zustand";
 
 interface RowsStoreProps {
   rows: Row[];
   isLoading: boolean;
+  error: string | null;
   fetchRows: (concertId: number, showId: number) => Promise<void>;
 }
-interface ErrorResponseNotExist {
-  error: string;
-}
+
 export const useRowsStore = create<RowsStoreProps>((set) => ({
   rows: [],
   isLoading: false,
+  error: null,
   fetchRows: async (concertId: number, showId: number) => {
+    set({ isLoading: true, error: null, rows: [] }); 
     try {
-      set({ isLoading: true });
-      const rows = await Api.rows.getAll(concertId, showId);
-      set({ rows });
-    } catch (error) {
-      const axiosError = error as AxiosError<ErrorResponseNotExist>;
-      console.error("Error fetching rows:", error);
-      throw axiosError.response?.data.error;
-    } finally {
-      set({ isLoading: false });
+      const fetchedRows = await Api.rows.getAll(concertId, showId);
+      set({ rows: fetchedRows, isLoading: false });
+    } catch (error: any) {
+      console.error("Error fetching rows in store:", error);
+      set({ isLoading: false, error: error.message || "Failed to load seating information.", rows: [] });
     }
   },
 }));

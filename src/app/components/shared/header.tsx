@@ -9,7 +9,7 @@ interface Props {
   className?: string;
 }
 
-export const Header: React.FC<Props> = ({ className }) => {
+export const Header: React.FC<Props> = ({ }) => {
   return (
     <div className="bg-indigo-300 text-white">
       <Container className="flex justify-between p-2 items-center">
